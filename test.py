@@ -31,7 +31,40 @@ https://dev.mysql.com/doc/refman/8.0/en/mysqlpump.html
           https://www.percona.com/blog/exploring-data-dump-and-load-utility-with-mysql-shell/
             https://www.youtube.com/watch?v=mKGNA4tYqSU
               
-
+https://docs.percona.com/percona-software-repositories/percona-release.html#
+https://docs.percona.com/percona-software-repositories/installing.html
+https://docs.percona.com/percona-software-repositories/index.html
+https://docs.percona.com/percona-server/8.0/installation/apt_repo.html
+https://docs.percona.com/percona-server/8.0/installation.html
+https://docs.percona.com/percona-software-repositories/installing.html
+https://docs.percona.com/percona-software-repositories/percona-release.html
+https://github.com/artefactual-labs/ansible-percona
+https://github.com/artefactual-labs/ansible-percona/blob/master/templates/root-my-cnf.j2
+https://www.percona.com/blog/deploy-percona-server-for-mongodb-replica-set-with-ansible/
+https://galaxy.ansible.com/shakahl/ansible-percona
+https://galaxy.ansible.com/techdad/repo-percona
+https://github.com/search?q=percona-server-setup&type=Repositories&ref=advsearch&l=&l=
+https://github.com/FoxyRoles/ansible-percona/blob/master/tasks/repository.yml
+https://github.com/joe-opensrc/ansible-percona-mongodb
+https://github.com/evgvl/ansible-percona-mysql-full/blob/master/tasks/main.yml
+https://github.com/stancel/setup-mysql-backups/blob/master/templates/backup_mysql_databases.sh
+https://galaxy.ansible.com/overdrive3000/percona
+https://github.com/overdrive3000/ansible-percona/blob/master/tasks/install.yml
+https://gitea.evolix.org/evolix/ansible-roles/src/branch/stable/percona/tasks/main.yml
+https://gitlab.com/ansible-collections1/zarrenspry.percona
+https://opendev.org/openstack/openstack-ansible-galera_server/commit/ffa0c2d87a46af3a0c7b388ad6607ee56a595fa4
+https://blog.deuterion.net/2016-12-06-build-percona-xtradb-cluster-using-ansible/
+https://nkotov.net/ansible-playbook-that-installs-nginx-php-7-4-percona-8-fail2ban-on-a-debian/
+https://percona.community/events/percona-live/mariadb-room/6/
+https://git.magelangkota.go.id/radityo/ansible-mysql/commits/branch/master/defaults
+https://docs.debops.org/en/v3.0.0/ansible/roles/mariadb_server/defaults/main.html
+https://stackoverflow.com/questions/30152231/how-to-deal-with-percona-keyserver-with-ansible
+https://docs.openstack.org/openstack-ansible-galera_server/pike/
+https://rimzy.net/category/ansible/
+https://www.randomhacks.co.uk/percona-apt_key-download-link/
+https://itc-life.ru/ansible-ustanovka-percona-cluster/
+https://severalnines119.rssing.com/chan-60088838/all_p2.html
+ 
 
 root@debian11:~/backups2# cat /opt/mysqlsh-backup/mysqlsh-backup.py
 #!/usr/bin/python3
