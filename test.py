@@ -67,7 +67,6 @@ https://severalnines119.rssing.com/chan-60088838/all_p2.html
 https://github.com/evgvl/ansible-percona-mysql-full/blob/master/tasks/replication.yml
  
 
-root@debian11:~/backups2# cat /opt/mysqlsh-backup/mysqlsh-backup.py
 #!/usr/bin/python3
 
 from enum import Enum, IntEnum
@@ -112,14 +111,8 @@ class XtraBackupAutomator:
 
         # Pulled all configs into the main file to keep this program simple and one file
         self._config_structs = {
-            "db": {
-                "un": "",
-                "pw": "",
-                "host": "localhost",
-                "port": "3306"
-            },
             "folder_names": {
-                "base_dir": "/data/logical-backups/",
+                "base_dir": "/data/binary-backups/",
                 "datadir": "mysql/",            # *** XtraBackupAutomator WILL ARCHIVE AND DELETE ANYTHING IN HERE. THIS SHOULD BE AN EMPTY FOLDER, NOT UTILIZED BY ANYTHING ELSE.
                 "archivedir": "archive/",       # *** XtraBackupAutomator COULD POTENTIALLY DELETE ANY NON-DIRECTORY IN HERE.
             },
@@ -129,9 +122,9 @@ class XtraBackupAutomator:
                 "archive_name_prefix": "database_backup_",
             },
             "general_settings": {
-                "backup_command_timeout_seconds": 30,
-                "max_time_between_backups_seconds": 60*5,
-                "additional_bu_command_params": []
+                "backup_command_timeout_seconds": 120,
+                "max_time_between_backups_seconds": 60*60*20,
+                "additional_bu_command_params": ["no-server-version-check"]
             },
             "archive_settings": {
                 "allow_archive": True,                          # An override to enable/disable all archive settings
@@ -148,19 +141,13 @@ class XtraBackupAutomator:
                 "log_child_process_to_screen": True,
                 "is_log_to_file": True,
                 "default_log_path": "/var/log/",
-                "default_log_file": "mysqlsh-backup.log",
+                "default_log_file": "binary-backup.log",
             }
         }
 
     """ * * * * """
     """ GETTERS """
     """ * * * * """
-    def _get_config_db(self):
-        """
-        Return the config sturct loaded from file for our database connection
-        :return: dict
-        """
-        return self._config_structs["db"]
 
     def _get_config_folder_names(self):
         """
@@ -345,34 +332,6 @@ class XtraBackupAutomator:
         """
         return self._get_config_general_settings()["additional_bu_command_params"]
 
-    def _get_config_db_un(self):
-        """
-        Get the username for the extrabu sql user to allow us to take the backup
-        :return:
-        """
-        return self._get_config_db()["un"]
-
-    def _get_config_db_pw(self):
-        """
-        Get the username for the extrabu sql user to allow us to take the backup
-        :return:
-        """
-        return self._get_config_db()["pw"]
-
-    def _get_config_db_host(self):
-        """
-        Get the username for the extrabu sql user to allow us to take the backup
-        :return:
-        """
-        return self._get_config_db()["host"]
-
-    def _get_config_db_port(self):
-        """
-        Get the username for the extrabu sql user to allow us to take the backup
-        :return:
-        """
-        return self._get_config_db()["port"]
-
     def _get_config_logging_file_path_full(self):
         """
         Returns the full path to the log file (if there is one)
@@ -487,15 +446,11 @@ class XtraBackupAutomator:
         """
         self._log(msg="Begin Executing 'Create Full Backup'", lvl=LogLvl.TRACE)
         command_timeout = self._get_config_general_backup_command_timeout_seconds()             # Give us X minutes to compelte the update before failing to timeout
-        cmd_un = self._get_config_db_un()                                               # This is the un for the db user that XtraBackup wants to use
-        cmd_pw = self._get_config_db_pw()                                               # This is the response we send to the initial command to enter the PW for this user.
-        cmd_host = self._get_config_db_host()
-        cmd_port = self._get_config_db_port()
         cmd_target_dir = self._get_config_file_basefolder_name_path()                   # Path to our base folder update
         pexpect_process = None                                                          # Set to none here so that we can do our try/catch/final correctly
 
         # Construct the base for our xtrabackup command
-        full_backup_cmd_txt = "sudo mysqlsh --user="+str(cmd_un)+" --password="+str(cmd_pw)+" --host="+str(cmd_host)+" --port="+str(cmd_port)+" -e \"util.dumpInstance('"+str(cmd_target_dir)+"')\""
+        full_backup_cmd_txt = "sudo xtrabackup --backup --parallel=2 --compress=zstd --compress-threads=2 --target-dir="+str(cmd_target_dir)
 
         # If there are additional command params that we wish to build out (according to config) we should do that here
         for _cmd_param in self._get_config_general_additional_bu_command_params():
@@ -508,18 +463,18 @@ class XtraBackupAutomator:
         try:
             # Use pexpect to send the bu command and wait for password prompt.
             pexpect_process = pexpect.spawn(full_backup_cmd_txt, timeout=command_timeout, echo=False, encoding='utf-8')
-            self._log(msg="Child process created. ProcessID: [{pid}], FileDescriptor: [{fd}]".format(pid=pexpect_process.pid, fd=pexpect_process.child_fd), lvl=LogLvl.INFO)
-            self._log(msg="Command: {cm}".format(cm=full_backup_cmd_txt))
+            self._log(msg="Child process created. ProcessID: [{pid}], FileDescriptor: [{fd}]".format(pid=pexpect_process.pid, fd=pexpect_process.child_fd), lvl=LogLvl.TRACE)
 
             # Returns index of response found, so we are hoping for found_response == 0
-#            found_response = pexpect_process.expect(['Enter password', pexpect.TIMEOUT], timeout=command_timeout)
+            found_response = pexpect_process.expect(['recognized server arguments', pexpect.TIMEOUT], timeout=command_timeout)
 
             # Waiting for PW prompt. If we find it correctly, send the password.
-#            if found_response == 0:
-#                pexpect_process.sendline(cmd_pw)
-#            elif found_response == 1:
-#                pexpect_process.close()
-#                raise Exception("Pexpect timed out waiting for password prompt. G4L3JRBL")
+            if found_response == 0:
+                #pexpect_process.sendline(cmd_pw)
+                pass
+            elif found_response == 1:
+                pexpect_process.close()
+                raise Exception("Pexpect timed out waiting for password prompt. G4L3JRBL")
 
             # If requested, push child processes output to screen, otherwise hide it b/c it can be quite annoying.
             if self._get_config_logging_is_enabled() and self._get_config_logging_log_child_process_to_screen():
@@ -571,19 +526,15 @@ class XtraBackupAutomator:
         """
         self._log(msg="Begin Executing 'Create Partial Backup'", lvl=LogLvl.TRACE)
         command_timeout = self._get_config_general_backup_command_timeout_seconds()
-        cmd_un = self._get_config_db_un()           # This is the un for the db user that XtraBackup wants to use
-        cmd_pw = self._get_config_db_pw()           # This is the response we send to the initial command to enter the PW for this user.
-        cmd_host = self._get_config_db_host()
-        cmd_port = self._get_config_db_port()
         target_dir_suffix = int(target_dir_suffix)  # just make sure this is an int
         cmd_incremental_basedir = ""                # This is the directory of the last backup that we are incrementing from. Read percona documentation for more information. Declaring here for readability
         pexpect_process = None                      # Set to none so that we can do our try/catch/final correctly
         cmd_target_dir = self.get_config_folder_datadir_path() + self._get_config_file_incrementalfolder_perfix() + str(target_dir_suffix)  # This is the directory of this incremental backup
 
-        """
+        """ 
             Determine the incremental-basedir from the target_dir_suffix.
-            We know the suffix for this dir is a number x in range [0,n] where n is an integer >= 0. This means we
-                know that our incremental-basedir is always in the folder x-1, or if x<0, our incremental-basedir
+            We know the suffix for this dir is a number x in range [0,n] where n is an integer >= 0. This means we 
+                know that our incremental-basedir is always in the folder x-1, or if x<0, our incremental-basedir 
                 is the actual base folder
         """
         if target_dir_suffix <= 0:
@@ -594,7 +545,7 @@ class XtraBackupAutomator:
             cmd_incremental_basedir = self.get_config_folder_datadir_path() + self._get_config_file_incrementalfolder_perfix() + str(target_dir_suffix-1)
 
         # Construct the base for our inc. backup command
-        incremental_backup_cmd_txt = "sudo mysqlsh --user="+str(cmd_un)+" --password="+str(cmd_pw)+" --host="+str(cmd_host)+" --port="+str(cmd_port)+" -e \"util.dumpInstance('"+str(cmd_target_dir)+"')\""
+        incremental_backup_cmd_txt = "sudo xtrabackup --backup --parallel=2 --compress=zstd --compress-threads=2 --target-dir="+str(cmd_target_dir)+" --incremental-basedir="+str(cmd_incremental_basedir)
 
         # If there are additional command params that we wish to build out (according to config) we should do that here
         for _cmd_param in self._get_config_general_additional_bu_command_params():
@@ -607,14 +558,16 @@ class XtraBackupAutomator:
         try:
             # Use pexpect to send the bu command and wait for password prompt.
             pexpect_process = pexpect.spawn(incremental_backup_cmd_txt, timeout=command_timeout, echo=False, encoding='utf-8')
-            self._log(msg="Child process created. ProcessID: [{pid}], FileDescriptor: [{fd}]".format(pid=pexpect_process.pid, fd=pexpect_process.child_fd), lvl=LogLvl.INFO)
+            self._log(msg="Child process created. ProcessID: [{pid}], FileDescriptor: [{fd}]".format(pid=pexpect_process.pid, fd=pexpect_process.child_fd), lvl=LogLvl.TRACE)
+#            self._log(incremental_backup_cmd_txt,lvl=LogLvl.TRACE)
 
             # Returns index of response found, so we are hoping for found_response == 0
-            found_response = pexpect_process.expect(['Enter password', pexpect.TIMEOUT], timeout=5)
+            found_response = pexpect_process.expect(['recognized server arguments', pexpect.TIMEOUT], timeout=5)
 
             # Waiting for PW prompt. If we find it correctly, send the password.
             if found_response == 0:
-                pexpect_process.sendline(cmd_pw)
+                #pexpect_process.sendline(cmd_pw)
+                pass
             elif found_response == 1:
                 pexpect_process.close()     # Don't need to close here b/c the catch closes for us, but i think it is more readable to close here as well
                 raise Exception("Pexpect timed out waiting for password prompt. G4L3JRBL")
@@ -881,3 +834,4 @@ if __name__ == '__main__':
         raise
     finally:
         run.log(msg="-=<>=- >>>>>>>>>>>> Exiting Program <<<<<<<<<<<< -=<>=-", lvl=LogLvl.TRACE)
+
