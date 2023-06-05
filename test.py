@@ -64,6 +64,7 @@ https://rimzy.net/category/ansible/
 https://www.randomhacks.co.uk/percona-apt_key-download-link/
 https://itc-life.ru/ansible-ustanovka-percona-cluster/
 https://severalnines119.rssing.com/chan-60088838/all_p2.html
+https://github.com/evgvl/ansible-percona-mysql-full/blob/master/tasks/replication.yml
  
 
 root@debian11:~/backups2# cat /opt/mysqlsh-backup/mysqlsh-backup.py
